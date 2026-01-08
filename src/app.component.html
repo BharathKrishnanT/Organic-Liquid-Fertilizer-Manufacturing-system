@@ -1,0 +1,42 @@
+<div class="container mx-auto p-4 md:p-8">
+  <header class="text-center mb-8">
+    <h1 class="text-4xl md:text-5xl font-bold text-[#6A5A4F] mb-2">Soil & Crop Nutrition Guide</h1>
+    <p class="text-lg text-gray-600">An Interactive Dashboard for South Indian Agriculture</p>
+  </header>
+
+  <nav class="flex flex-wrap justify-center bg-[#F1EADF] rounded-full p-2 mb-10 max-w-5xl mx-auto shadow-sm">
+    @for (section of sections; track section.id) {
+      <button 
+        (click)="showSection(section.id)"
+        [class]="'flex-grow md:flex-initial nav-button text-center py-2 px-3 md:px-4 rounded-full font-semibold transition-all duration-300 ' + (activeSection() === section.id ? 'active bg-[#A47E3B] text-white shadow-md' : 'hover:bg-[#e6dcd0]')">
+        {{ section.icon }} {{ section.label }}
+      </button>
+    }
+  </nav>
+
+  <main>
+    @switch (activeSection()) {
+      @case ('npk') {
+        <app-npk-readings></app-npk-readings>
+      }
+      @case ('tank') {
+        <app-tank-monitor></app-tank-monitor>
+      }
+      @case ('motor') {
+        <app-motor-control></app-motor-control>
+      }
+      @case ('generator') {
+        <app-fertilizer-generator></app-fertilizer-generator>
+      }
+      @case ('soils') {
+        <app-soil-explorer></app-soil-explorer>
+      }
+      @case ('crops') {
+        <app-crop-guide></app-crop-guide>
+      }
+      @case ('references') {
+        <app-references></app-references>
+      }
+    }
+  </main>
+</div>
