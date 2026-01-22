@@ -4,7 +4,7 @@
     <p class="mt-2 text-gray-600 max-w-2xl mx-auto">Remotely activate or deactivate the fertilizer pump motor. You must be connected to the Arduino to send commands.</p>
   </div>
 
-  <div class="flex flex-col items-center justify-center space-y-6 min-h-[300px]">
+  <div class="flex flex-col items-center justify-center space-y-6">
     <!-- Toggle Switch -->
     <button 
       (click)="toggleMotor()"
@@ -52,5 +52,37 @@
         <p class="mt-4 text-gray-500 min-h-[40px] px-4">{{ statusMessage() }}</p>
       }
     </div>
+  </div>
+
+  <!-- History Section -->
+  <div class="mt-8 pt-6 border-t border-gray-200">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-xl font-bold text-[#6A5A4F]">Activation History</h3>
+      @if (motorHistory().length > 0) {
+        <button (click)="clearHistory()" class="text-sm font-semibold text-red-600 hover:text-red-800 transition-colors">
+          Clear History
+        </button>
+      }
+    </div>
+
+    @if (motorHistory().length > 0) {
+      <div class="max-h-60 overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-2 border border-gray-200">
+        @for (entry of motorHistory(); track $index) {
+          <div class="flex justify-between items-center text-sm p-2 rounded-md" [class]="entry.state === 'ON' ? 'bg-green-50' : 'bg-gray-100'">
+            <span class="font-semibold" [class]="entry.state === 'ON' ? 'text-green-700' : 'text-gray-600'">
+              Motor {{ entry.state === 'ON' ? 'Activated' : 'Deactivated' }}
+            </span>
+            <span class="text-gray-500 font-mono text-xs">
+              {{ entry.timestamp | date:'medium' }}
+            </span>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="text-center text-gray-500 bg-gray-50 rounded-lg p-6 border border-gray-200">
+        <p>No motor activity recorded yet.</p>
+        <p class="text-sm">Connect to the device and toggle the motor to begin logging.</p>
+      </div>
+    }
   </div>
 </div>

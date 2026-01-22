@@ -1,15 +1,10 @@
-import { Component, ChangeDetectionStrategy, signal, inject, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, inject, computed, input, effect, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Esp32Service, NpkReadings } from '../../services/esp32.service';
 import { DataService } from '../../services/data.service';
 import { finalize } from 'rxjs/operators';
-
-interface Deficiency {
-  nutrient: 'N' | 'P' | 'K';
-  level: 'Very Deficient' | 'Deficient';
-  weight: number;
-}
+import { Deficiency } from '../../models';
 
 interface RecipeItem {
   name: string;
@@ -25,6 +20,11 @@ interface RecipeItem {
 export class FertilizerGeneratorComponent {
   private esp32Service = inject(Esp32Service);
   private dataService = inject(DataService);
+
+  // Inputs & Outputs
+  initialDeficiencies = input<Deficiency[] | null>(null);
+  source = input<'analyser' | 'crop' | null>(null);
+  resetToSensor = output<void>();
   
   organicsData = this.dataService.getData().organics;
 
@@ -34,7 +34,28 @@ export class FertilizerGeneratorComponent {
   quantity = signal<number>(10);
   unit = signal<'kg' | 'L'>('kg');
   
+  constructor() {
+    effect(() => {
+      if (this.source() === 'analyser') {
+        this.statusMessage.set('Using deficiency data from Plant Analyser.');
+        this.readings.set(null);
+      } else if (this.source() === 'crop') {
+        this.statusMessage.set('Using nutrient needs from Crop Guide.');
+        this.readings.set(null);
+      } else {
+        this.statusMessage.set('Get soil readings to begin.');
+      }
+    });
+  }
+
   deficiencies = computed<Deficiency[]>(() => {
+    // If data is passed from another component, use it as the source of truth.
+    const manualDefs = this.initialDeficiencies();
+    if (manualDefs && manualDefs.length > 0) {
+      return manualDefs;
+    }
+
+    // Otherwise, compute from soil sensor readings as before.
     const r = this.readings();
     if (!r) return [];
 
@@ -64,8 +85,9 @@ export class FertilizerGeneratorComponent {
     const additivesTotalAmount = totalQuantity * 0.4;
     const totalWeight = defs.reduce((sum, d) => sum + d.weight, 0);
 
+    if (totalWeight === 0) return recipeItems; // Avoid division by zero if all weights are 0
+
     for (const def of defs) {
-      // FIX: Cast Object.values to a typed array to resolve TypeScript errors about properties not existing on type 'unknown'.
       const additiveInfo = (Object.values(this.organicsData.additives) as { nutrient: string; name: string }[]).find(a => a.nutrient === def.nutrient);
       if (additiveInfo) {
         const amount = (def.weight / totalWeight) * additivesTotalAmount;
@@ -95,8 +117,11 @@ export class FertilizerGeneratorComponent {
   }
 
   getAdditive(nutrient: 'N' | 'P' | 'K'): string {
-    // FIX: Cast Object.values to a typed array to resolve TypeScript errors about properties not existing on type 'unknown'.
     const additive = (Object.values(this.organicsData.additives) as { nutrient: string; name: string }[]).find(a => a.nutrient === nutrient);
     return additive ? additive.name : 'Unknown';
+  }
+
+  switchToSensorMode(): void {
+    this.resetToSensor.emit();
   }
 }

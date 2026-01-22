@@ -17,6 +17,7 @@ export class MotorControlComponent implements OnInit, OnDestroy {
   motorOn = signal(false);
   connectionStatus = signal<ConnectionStatus>('disconnected');
   statusMessage = signal('Connect to an Arduino device to send commands.');
+  motorHistory = signal<{ timestamp: Date, state: 'ON' | 'OFF' }[]>([]);
   
   ngOnInit(): void {
     const statusSub = this.esp32Service.connectionStatus$.subscribe(status => {
@@ -29,6 +30,7 @@ export class MotorControlComponent implements OnInit, OnDestroy {
 
     const relaySub = this.esp32Service.relayState$.subscribe(state => {
       this.motorOn.set(state);
+      this.recordMotorState(state);
     });
 
     this.subscription.add(statusSub);
@@ -52,6 +54,27 @@ export class MotorControlComponent implements OnInit, OnDestroy {
 
   disconnect(): void {
     this.esp32Service.disconnect();
+  }
+  
+  clearHistory(): void {
+    this.motorHistory.set([]);
+  }
+
+  private recordMotorState(isOn: boolean): void {
+    if (this.connectionStatus() !== 'connected') {
+      return; // Do not record history when not connected
+    }
+
+    const newState = isOn ? 'ON' : 'OFF';
+    const lastState = this.motorHistory()[0]?.state;
+
+    if (newState !== lastState) {
+        const newEntry = {
+            timestamp: new Date(),
+            state: newState
+        };
+        this.motorHistory.update(history => [newEntry, ...history]);
+    }
   }
 
   private updateStatusMessage(status: ConnectionStatus): void {
